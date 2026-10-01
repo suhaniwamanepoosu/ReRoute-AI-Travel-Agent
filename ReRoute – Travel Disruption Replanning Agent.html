@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ReRoute – Travel Disruption Replanning Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#12202f;--mute:#5b6b7b;--line:#dbe2e8;--ok:#0f8a6d;--warn:#c76a00;--bad:#c23a3a;--acc:#1553d6;--hero:#0e1c2e;--heroink:#eaf1f8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1420;--card:#122033;--ink:#e6eef6;--mute:#93a4b6;--line:#243850;--ok:#3ccfa5;--warn:#f0a53a;--bad:#ff7a7a;--acc:#6aa2ff;--hero:#07101a}}
+:root[data-theme="dark"]{--bg:#0b1420;--card:#122033;--ink:#e6eef6;--mute:#93a4b6;--line:#243850;--ok:#3ccfa5;--warn:#f0a53a;--bad:#ff7a7a;--acc:#6aa2ff;--hero:#07101a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:6px;align-items:center;padding:10px 16px;background:var(--hero);color:var(--heroink);flex-wrap:wrap}
+nav b{font-size:18px;margin-right:auto;letter-spacing:.3px}
+nav button{background:none;border:0;color:inherit;padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer}
+nav button.on,nav button:hover{background:rgba(255,255,255,.14)}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1,h2,h3{margin:0 0 8px;line-height:1.15}
+.hero{background:var(--hero);color:var(--heroink);border-radius:20px;padding:48px 28px;position:relative;overflow:hidden}
+.hero h1{font-size:clamp(34px,7vw,64px);font-weight:800;max-width:14ch}
+.hero p{max-width:52ch;color:#b7c7d8;font-size:17px}
+.route{position:absolute;right:-20px;top:20px;width:55%;opacity:.9}
+.route path{stroke-dasharray:6 8;animation:dash 2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:11px 18px;font:600 15px inherit;cursor:pointer;font-family:inherit}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.warn{background:var(--warn);color:#fff}
+.btn:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.stat b{font-size:30px;display:block}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid currentColor}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.mute{color:var(--mute)}
+.tl{position:relative;padding-left:26px;margin:0;list-style:none}
+.tl:before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl li{position:relative;margin-bottom:12px}
+.tl li:before{content:"";position:absolute;left:-23px;top:18px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--acc)}
+.tl li.moved:before{border-color:var(--warn)}
+.tl li.moved .card{border-color:var(--warn)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+input,select{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.agents{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.ag{flex:1 1 150px;min-width:140px;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--card);transition:.3s;position:relative}
+.ag small{display:block;color:var(--mute)}
+.ag.run{border-color:var(--warn);transform:translateY(-3px)}
+.ag.done{border-color:var(--ok)}
+.arrow{align-self:center;color:var(--mute)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.cmp{grid-template-columns:1fr}.hero{padding:32px 18px}.route{display:none}}
+.why{font-size:13px;color:var(--mute);margin-top:6px}
+.tag{font-size:12px;color:var(--mute)}
+.note{padding:10px 12px;border-left:4px solid var(--warn);background:var(--bg);border-radius:6px;margin-bottom:8px;animation:in .4s}
+@keyframes in{from{opacity:0;transform:translateX(-10px)}}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chain span.n{padding:4px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.chain span.n.hit{border-color:var(--warn);color:var(--warn);font-weight:600}
+pre{white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;font:13px/1.5 inherit;margin:0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<nav><b>✈ ReRoute</b>
+<button data-v="home">Home</button><button data-v="dash">Dashboard</button><button data-v="new">Create trip</button><button data-v="trip">Trip &amp; replan</button></nav>
+<main id="app"></main>
+<script>
+/* ============ DATA & HELPERS ============ */
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,"0");
+// time = minutes since midnight of trip day 1 (day 2 = +1440)
+const fmt=m=>{const d=Math.floor(m/1440),t=m%1440,h=Math.floor(t/60);return (d?"Day "+(d+1)+" · ":"")+((h%12)||12)+":"+pad(t%60)+" "+(h<12?"AM":"PM")};
+const dur=m=>m%60?`${Math.floor(m/60)}h ${m%60}m`:`${m/60} hour${m>60?"s":""}`;
+const ICON={flight:"✈️",hotel:"🏨",meeting:"💼",activity:"🍽️"};
+const E=(id,type,title,start,d,dep,gap,place)=>({id,type,title,start,dur:d,dep,gap,place});
+const SAMPLE=()=>({id:"t1",name:"Mumbai Product Summit",dest:"Mumbai",date:"2026-10-12",notes:[],plan:null,
+ events:[E("f","flight","Flight AI-657 Nagpur → Mumbai",600,150,null,0,"NAG Airport"),
+ E("h","hotel","Hotel check-in · Taj Lands End",840,30,"f",90,"Bandra"),
+ E("m","meeting","Client meeting · Partnerships team",1020,90,"h",150,"BKC"),
+ E("d","activity","Dinner · Juhu Beach",1200,90,"m",90,"Juhu"),
+ E("b","activity","Breakfast · Colaba Cafe",1440+480,60,null,0,"Colaba")]});
+let S;try{S=JSON.parse(localStorage.getItem("reroute")||"null")}catch(e){S=null}
+if(!S||!S.trips)S={trips:[SAMPLE()],active:"t1"};
+const save=()=>{try{localStorage.setItem("reroute",JSON.stringify(S))}catch(e){}};
+const cur=()=>S.trips.find(t=>t.id===S.active)||S.trips[0];
+
+/* ============ AI AGENTS (the core logic) ============ */
+const Agents={
+ // 1. Itinerary Agent: orders events and exposes the dependency graph
+ itinerary(trip){return [...trip.events].sort((a,b)=>a.start-b.start)},
+ // 2. Flight Monitoring Agent: detects the disruption and computes the new arrival
+ flightMonitor(trip,delay){const f=trip.events.find(e=>e.type==="flight");
+  return {flight:f,delay,oldArrival:f.start+f.dur,newArrival:f.start+f.dur+delay}},
+ // 3. Dependency Agent: walks the dependency graph to find which events are really impacted
+ dependency(trip,signal){const hit=new Set([signal.flight.id]);
+  Agents.itinerary(trip).forEach(e=>{if(e.dep&&hit.has(e.dep))hit.add(e.id)});
+  return hit},
+ // 4. Replanning Agent: pushes events later only as far as needed (buffers/slack respected) and explains each move
+ replan(trip,signal,hit){const ev=Agents.itinerary(trip).map(e=>({...e,old:e.start,moved:0,why:""}));
+  const by=Object.fromEntries(ev.map(e=>[e.id,e]));
+  ev.forEach(e=>{
+   if(e.id===signal.flight.id){e.start+=signal.delay;e.moved=signal.delay;
+    e.why=`Flight departure moved from ${fmt(e.old)} to ${fmt(e.start)} because of the ${dur(signal.delay)} delay.`;return}
+   if(!hit.has(e.id)){e.why="Not connected to the delayed flight, so it stays as planned.";return}
+   const p=by[e.dep],need=p.start+p.dur+e.gap;
+   if(need>e.start){e.moved=need-e.start;e.start=need;
+    e.why=`${e.title.split(" · ")[0]} moved from ${fmt(e.old)} to ${fmt(e.start)} because "${p.title.split(" · ")[0]}" now ends at ${fmt(p.start+p.dur)} and needs a ${e.gap}-min buffer.`}
+   else e.why="Depends on the flight, but there was enough slack, so no change is needed."});
+  return ev},
+ // 5. Communication Agent: turns changes into notifications + a ready-to-send message
+ communicate(trip,ev,delay){const n=[`Your flight has been delayed by ${dur(delay)}.`];
+  ev.filter(e=>e.moved&&e.type!=="flight").forEach(e=>n.push({hotel:"Your hotel check-in has been automatically adjusted.",meeting:"Your meeting has been rescheduled.",activity:`Your plan "${e.title.split(" · ")[0]}" has been moved.`}[e.type]));
+  const m=ev.find(e=>e.type==="meeting"&&e.moved);
+  const draft=m?`Hi team,\nMy flight to ${trip.dest} is delayed by ${dur(delay)}. Could we move "${m.title}" from ${fmt(m.old)} to ${fmt(m.start)}? Sorry for the change and thank you!\n— Sent by ReRoute`:"";
+  return {n,draft}}
+};
+
+/* ============ VIEWS ============ */
+let view="home";
+const go=v=>{view=v;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));render();scrollTo(0,0)};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>go(b.dataset.v));
+const pipeline=()=>`<div class="agents" id="pipe">${[["Itinerary Agent","Reads trip & links events"],["Flight Monitoring Agent","Detects delay, new arrival"],["Dependency Agent","Finds affected events"],["Replanning Agent","Builds new schedule"],["Communication Agent","Notifies & drafts messages"]].map((a,i)=>(i?'<span class="arrow">➜</span>':"")+`<div class="ag"><b>${a[0]}</b><small>${a[1]}</small></div>`).join("")}</div>`;
+
+function home(){return `<section class="hero"><svg class="route" viewBox="0 0 400 200" fill="none"><path d="M10 170 C120 20 260 220 390 40" stroke="#6aa2ff" stroke-width="3"/><circle cx="10" cy="170" r="7" fill="#3ccfa5"/><circle cx="390" cy="40" r="7" fill="#f0a53a"/></svg>
+<h1>When your flight slips, your whole trip re-plans itself.</h1>
+<p>ReRoute is a team of AI agents that watches your itinerary, finds every event a delay breaks, and rebuilds the day, with a reason for each change.</p>
+<button class="btn" onclick="go('new')">Plan My Trip</button> <button class="btn alt" style="color:#fff;border-color:#4a6178" onclick="go('trip')">Try the demo trip</button></section>
+<h2 style="margin-top:28px">How the agents work together</h2>${pipeline()}`}
+
+function dash(){const t=cur(),f=t.events.find(e=>e.type==="flight"),h=t.events.find(e=>e.type==="hotel"),ms=t.events.filter(e=>e.type==="meeting");
+ const st=t.plan?`<span class="badge warn">Replanned</span>`:`<span class="badge ok">On schedule</span>`;
+ return `<h2>Dashboard</h2><div class="grid g4">
+ <div class="card stat"><span class="mute">Current trips</span><b>${S.trips.length}</b></div>
+ <div class="card stat"><span class="mute">Upcoming flight</span><b style="font-size:18px">${f?fmt(f.start):"-"}</b><span class="tag">${f?f.title:""}</span></div>
+ <div class="card stat"><span class="mute">Hotel</span><b style="font-size:18px">${h?fmt(h.start):"-"}</b><span class="tag">${h?h.title:""}</span></div>
+ <div class="card stat"><span class="mute">Meetings</span><b>${ms.length}</b>${ms[0]?`<span class="tag">Next: ${fmt(ms[0].start)}</span>`:""}</div></div>
+ <div class="grid g2" style="margin-top:14px"><div class="card"><h3>Your trips</h3>${S.trips.map(x=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><div><b>${x.name}</b><div class="tag">${x.dest} · ${x.date}</div></div><div>${x.plan?'<span class="badge warn">Replanned</span>':'<span class="badge ok">On schedule</span>'} <button class="btn alt" onclick="S.active='${x.id}';save();go('trip')">Open</button></div></div>`).join("")}</div>
+ <div class="card"><h3>Notifications</h3>${notifHTML()}</div></div>`}
+function notifHTML(){const all=S.trips.flatMap(t=>t.notes.map(n=>`<div class="note">${n}</div>`));return all.length?all.join(""):`<p class="mute">No alerts yet. Open your trip and simulate a delay.</p>`}
+
+function newTrip(){return `<h2>Create trip</h2><form class="card" onsubmit="makeTrip(event)">
+<label>Trip name<input name="name" required value="Delhi Hackathon Trip"></label><label>Destination<input name="dest" required value="Delhi"></label>
+<label>Date<input type="date" name="date" required value="2026-11-05"></label>
+<label>Flight name<input name="fl" required value="Flight 6E-204 Nagpur → Delhi"></label><label>Departure time<input type="time" name="ft" required value="09:00"></label>
+<label>Flight duration (hours)<input type="number" name="fd" step="0.5" min="0.5" value="2" required></label>
+<label>Hotel name<input name="hn" required value="Hotel Aerocity"></label><label>Hotel check-in time<input type="time" name="ht" required value="13:00"></label>
+<label>Meeting<input name="mn" required value="Mentor meeting"></label><label>Meeting time<input type="time" name="mt" required value="16:00"></label>
+<label>Activity<input name="an" required value="Team dinner"></label><label>Activity time<input type="time" name="at" required value="19:30"></label>
+<div style="grid-column:1/-1"><button class="btn">Save trip &amp; view timeline</button> <span class="tag">Hotel depends on the flight, the meeting on the hotel, and the activity on the meeting.</span></div></form>`}
+function makeTrip(ev){ev.preventDefault();const f=Object.fromEntries(new FormData(ev.target));const tm=s=>{const[a,b]=s.split(":");return +a*60+ +b};
+ const d=Math.round(f.fd*60),ft=tm(f.ft);
+ const t={id:"t"+Date.now(),name:f.name,dest:f.dest,date:f.date,notes:[],plan:null,events:[
+ E("f","flight",f.fl,ft,d,null,0,""),E("h","hotel","Hotel check-in · "+f.hn,Math.max(tm(f.ht),ft+d+60),30,"f",60,""),
+ E("m","meeting",f.mn,Math.max(tm(f.mt),0),60,"h",60,""),E("d","activity",f.an,tm(f.at),90,"m",30,"")]};
+ // keep each event after its dependency's end + buffer
+ t.events.forEach(e=>{if(e.dep){const p=t.events.find(x=>x.id===e.dep);e.start=Math.max(e.start,p.start+p.dur+e.gap)}});
+ S.trips.push(t);S.active=t.id;save();go("trip")}
+
+function evCard(e,mode){const mv=e.moved>0;
+ return `<li class="${mv&&mode==="new"?"moved":""}"><div class="card"><div class="row"><div>${ICON[e.type]} <b>${e.title}</b><div class="tag">${fmt(mode==="new"?e.start:(e.old??e.start))}${e.dur?" · "+dur(e.dur):""}</div></div>
+ ${mode==="new"?(mv?`<span class="badge warn">+${dur(e.moved)}</span>`:`<span class="badge ok">No change</span>`):`<span class="badge mute">${e.type}</span>`}</div>
+ ${mode==="new"&&e.why?`<div class="why">💡 ${e.why}</div>`:""}</div></li>`}
+
+function trip(){const t=cur();const evs=Agents.itinerary(t);
+ let h=`<div class="row"><div><h2>${t.name}</h2><div class="tag">${t.dest} · ${t.date} · ${t.plan?'<span class="warn">Replanned after delay</span>':'<span class="ok">On schedule</span>'}</div></div>
+ <div><button class="btn warn" onclick="openDelay()">Simulate Flight Delay</button> ${t.plan?`<button class="btn alt" onclick="resetTrip()">Reset</button>`:""}</div></div>
+ <div id="delayBox" class="card" style="display:none;margin:12px 0"><b>How long is the delay?</b><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${[1,2,3,5].map(x=>`<button class="btn alt" onclick="runDisruption(${x*60})">${x} hour${x>1?"s":""}</button>`).join("")}</div></div>
+ <h3 style="margin-top:18px">AI agent pipeline</h3>${pipeline()}`;
+ if(!t.plan){h+=`<h3 style="margin-top:22px">Itinerary timeline</h3><ul class="tl">${evs.map(e=>evCard(e,"old")).join("")}</ul>`}
+ else{const p=t.plan,aff=p.rows.filter(r=>p.hit.includes(r.id));
+  h+=`<div class="card" style="margin-top:16px"><h3>Dependency detection</h3><p class="mute" style="margin-top:0">The ${dur(p.delay)} delay pushes arrival from ${fmt(p.oldArrival)} to ${fmt(p.newArrival)}. Affected chain:</p>
+  <div class="chain">${aff.map((r,i)=>(i?"➜ ":"")+`<span class="n ${r.moved?"hit":""}">${ICON[r.type]} ${r.title.split(" · ")[0]}</span>`).join("")}</div></div>
+  <h3 style="margin-top:22px">Old vs new schedule</h3><div class="cmp"><div><div class="tag" style="margin-bottom:6px">Original</div><ul class="tl">${p.rows.map(e=>evCard(e,"old")).join("")}</ul></div>
+  <div><div class="tag" style="margin-bottom:6px">AI replanned</div><ul class="tl">${[...p.rows].sort((a,b)=>a.start-b.start).map(e=>evCard(e,"new")).join("")}</ul></div></div>
+  <div class="grid g2"><div class="card"><h3>Notifications</h3>${p.notes.map(n=>`<div class="note">${n}</div>`).join("")}</div>
+  <div class="card"><h3>Message drafted by Communication Agent</h3>${p.draft?`<pre>${p.draft}</pre>`:'<p class="mute">No meeting needed rescheduling.</p>'}</div></div>`}
+ return h}
+
+/* ============ ACTIONS ============ */
+const openDelay=()=>{const b=$("#delayBox");b.style.display=b.style.display==="none"?"block":"none"};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function runDisruption(delay){const t=cur();$("#delayBox").style.display="none";
+ const ags=[...document.querySelectorAll(".ag")];
+ const step=async(i)=>{ags[i].className="ag run";await sleep(550);ags[i].className="ag done"};
+ const baseline=t.plan?t.events:t.events;
+ await step(0);const signal=Agents.flightMonitor(t,delay);await step(1);
+ const hit=Agents.dependency(t,signal);await step(2);
+ const rows=Agents.replan(t,signal,hit);await step(3);
+ const msg=Agents.communicate(t,rows,delay);await step(4);
+ t.plan={delay,oldArrival:signal.oldArrival,newArrival:signal.newArrival,hit:[...hit],rows,notes:msg.n,draft:msg.draft};
+ t.notes=[...msg.n.map(n=>n),...t.notes].slice(0,12);save();render()}
+function resetTrip(){const t=cur();t.plan=null;save();render()}
+
+function render(){$("#app").innerHTML={home,dash,new:newTrip,trip}[view]();}
+go("home");
+</script></body></html>
